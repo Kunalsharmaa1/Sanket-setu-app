@@ -1,53 +1,69 @@
-// Dummy nearby users (simulated database)
-const users = [
-    { name: "User A", lat: 28.7041, lon: 77.1025 },
-    { name: "User B", lat: 28.7050, lon: 77.1000 },
-    { name: "User C", lat: 19.0760, lon: 72.8777 }
-];
+let helpers = [];
+let logList = document.getElementById("log");
 
-// Haversine Formula to calculate distance
+function registerHelper() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+            helpers.push({
+                name: "Helper " + (helpers.length + 1),
+                lat: position.coords.latitude,
+                lon: position.coords.longitude
+            });
+
+            document.getElementById("output").innerHTML =
+                "✅ You are registered as a nearby helper.";
+        });
+    }
+}
+
 function getDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371; 
+    const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
 
     const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.sin(dLat / 2) ** 2 +
         Math.cos(lat1 * Math.PI / 180) *
         Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        Math.sin(dLon / 2) ** 2;
 
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
-function getLocation() {
+function sendSOS() {
     if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(showPosition);
-        document.getElementById("status").innerHTML = "Fetching location...";
-    } else {
-        document.getElementById("status").innerHTML = "Geolocation not supported.";
-    }
-}
+        navigator.geolocation.getCurrentPosition(position => {
 
-function showPosition(position) {
-    const userLat = position.coords.latitude;
-    const userLon = position.coords.longitude;
+            let userLat = position.coords.latitude;
+            let userLon = position.coords.longitude;
 
-    let nearbyUsers = [];
+            let nearby = [];
 
-    users.forEach(user => {
-        let distance = getDistance(userLat, userLon, user.lat, user.lon);
-        if (distance <= 2) {   // 2km radius
-            nearbyUsers.push(user.name);
-        }
-    });
+            helpers.forEach(helper => {
+                let dist = getDistance(userLat, userLon, helper.lat, helper.lon);
+                if (dist <= 2) {
+                    nearby.push(helper.name + " (" + dist.toFixed(2) + " km)");
+                }
+            });
 
-    if (nearbyUsers.length > 0) {
-        document.getElementById("result").innerHTML =
-            "🚨 Alert sent to: " + nearbyUsers.join(", ");
-    } else {
-        document.getElementById("result").innerHTML =
-            "No nearby users found within 2km radius.";
+            let outputText = "🚨 Emergency Alert Generated<br>";
+            outputText += "📍 Location Captured<br>";
+
+            if (nearby.length > 0) {
+                outputText += "👥 Alert sent to:<br>" + nearby.join("<br>");
+            } else {
+                outputText += "No nearby helpers found within 2km.";
+            }
+
+            outputText += "<br>🚓 Police Alert Sent Successfully.";
+
+            document.getElementById("output").innerHTML = outputText;
+
+            let time = new Date().toLocaleString();
+            let li = document.createElement("li");
+            li.textContent = "SOS triggered at " + time;
+            logList.appendChild(li);
+
+        });
     }
 }
